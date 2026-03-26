@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام تقارير دعم التميز المدرسي</title>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Arabic Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ─── Variables ─────────────────────────────────────────── */
+:root {
+  --c1:  #1B5E70;   /* primary dark teal */
+  --c2:  #245966;   /* report header color */
+  --c3:  #3A8FA3;   /* lighter teal */
+  --c4:  #4CAF7D;   /* green accent */
+  --cbg: #EEF4F6;   /* page background */
+  --ccard: #FFFFFF;
+  --ctxt: #1E2A35;
+  --clt:  #6B7C93;
+  --cbrd: #C8D9DE;
+  --shadow: 0 3px 14px rgba(0,0,0,.10);
+}
+
+/* ─── Reset ─────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Cairo','Arial',sans-serif;
+  background:var(--cbg);
+  color:var(--ctxt);
+  direction:rtl;
+  min-height:100vh;
+}
+a{color:inherit;}
+
+/* ─── App Header ─────────────────────────────────────────── */
+.app-header{
+  background:linear-gradient(135deg,#0D3A47,var(--c1));
+  color:#fff;
+  padding:18px 30px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+}
+.app-header h1{font-size:1.3rem;font-weight:800;line-height:1.3;}
+.app-header .sub{font-size:.8rem;opacity:.75;margin-top:3px;}
+.status-pill{
+  padding:6px 16px;border-radius:20px;font-size:.78rem;font-weight:700;
+  white-space:nowrap;
+}
+.status-pill.none{background:rgba(255,255,255,.18);}
+.status-pill.ok{background:#27AE60;}
+.status-pill.loading{background:#F39C12;}
+
+/* ─── Container ──────────────────────────────────────────── */
+.wrap{max-width:1100px;margin:0 auto;padding:22px 18px;}
+
+/* ─── Card ───────────────────────────────────────────────── */
+.card{
+  background:var(--ccard);border-radius:14px;
+  padding:22px;box-shadow:var(--shadow);margin-bottom:18px;
+}
+.card-title{
+  font-size:1rem;font-weight:800;color:var(--c1);
+  margin-bottom:14px;padding-bottom:10px;
+  border-bottom:2px solid var(--c1);
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ─── Upload ──────────────────────────────────────────────── */
+.upload-zone{
+  border:2.5px dashed var(--c3);border-radius:12px;
+  padding:38px 20px;text-align:center;cursor:pointer;
+  background:#EBF5FB;transition:all .25s;
+}
+.upload-zone:hover,.upload-zone.over{
+  border-color:var(--c1);background:#D6EAF8;
+}
+.upload-ico{font-size:2.8rem;margin-bottom:10px;}
+.upload-t{font-size:.95rem;color:var(--c1);font-weight:700;}
+.upload-s{font-size:.8rem;color:var(--clt);margin-top:5px;}
+
+/* ─── Filters ─────────────────────────────────────────────── */
+.filters-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:14px;
+}
+.fg label{
+  display:block;font-size:.82rem;font-weight:700;
+  color:var(--ctxt);margin-bottom:5px;
+}
+.fg select{
+  width:100%;padding:9px 12px;
+  border:1.5px solid var(--cbrd);border-radius:8px;
+  font-family:'Cairo',Arial,sans-serif;font-size:.88rem;
+  background:#fff;color:var(--ctxt);
+  cursor:pointer;direction:rtl;transition:border-color .2s;
+  appearance:auto;
+}
+.fg select:focus{
+  outline:none;border-color:var(--c1);
+  box-shadow:0 0 0 3px rgba(27,94,112,.12);
+}
+
+/* ─── Stats / Actions ─────────────────────────────────────── */
+.stats-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;
+  background:linear-gradient(135deg,#EBF5FB,#E8F8F5);
+  border-radius:10px;padding:14px 18px;margin-top:16px;
+}
+.stats-left{display:flex;align-items:center;gap:8px;}
+.stats-num{font-size:1.4rem;font-weight:900;color:var(--c1);}
+.stats-lbl{font-size:.82rem;color:var(--clt);}
+.actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* ─── Buttons ─────────────────────────────────────────────── */
+.btn{
+  padding:10px 20px;border:none;border-radius:8px;
+  font-family:'Cairo',Arial,sans-serif;font-size:.88rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  display:inline-flex;align-items:center;gap:7px;
+  white-space:nowrap;
+}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+.btn-p{background:var(--c1);color:#fff;}
+.btn-p:hover:not(:disabled){background:#0D3A47;transform:translateY(-1px);}
+.btn-g{background:#27AE60;color:#fff;}
+.btn-g:hover:not(:disabled){background:#219A52;transform:translateY(-1px);}
+.btn-o{background:transparent;border:2px solid var(--c1);color:var(--c1);}
+.btn-o:hover:not(:disabled){background:var(--c1);color:#fff;}
+.btn-d{background:#E74C3C;color:#fff;}
+.btn-d:hover:not(:disabled){background:#C0392B;}
+
+/* ─── Progress ─────────────────────────────────────────────── */
+.prog-wrap{display:none;}
+.prog-wrap.on{display:block;}
+.prog-track{background:#E0E0E0;border-radius:10px;height:13px;overflow:hidden;margin:10px 0;}
+.prog-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--c1),var(--c3));
+  border-radius:10px;transition:width .3s;
+}
+.prog-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.88rem;
+}
+.prog-det{font-size:.8rem;color:var(--clt);margin-top:4px;}
+
+/* ─── Modal ───────────────────────────────────────────────── */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.72);z-index:2000;
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.on{display:flex;}
+.modal-box{
+  background:#fff;border-radius:14px;width:100%;max-width:870px;
+  max-height:94vh;display:flex;flex-direction:column;overflow:hidden;
+}
+.modal-head{
+  padding:14px 18px;background:var(--c1);color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-head strong{font-size:1rem;}
+.modal-body{overflow-y:auto;flex:1;padding:16px;background:#f0f0f0;}
+
+/* ─── Toast ───────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:#1E2A35;color:#fff;
+  padding:12px 22px;border-radius:10px;font-size:.88rem;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  transform:translateY(80px);opacity:0;transition:all .35s;z-index:9999;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ─── Info Box ────────────────────────────────────────────── */
+.info-box{
+  background:#E8F4FD;border-right:4px solid var(--c1);
+  border-radius:8px;padding:12px 16px;font-size:.85rem;
+  line-height:1.7;color:var(--ctxt);
+}
+.info-box b{color:var(--c1);}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+@media(max-width:600px){
+  .app-header{flex-direction:column;align-items:flex-start;}
+  .stats-bar{flex-direction:column;align-items:flex-start;}
+  .filters-grid{grid-template-columns:1fr;}
+}
+
+/* ════════════════════════════════════════════════════════════
+   REPORT STYLES (used both in preview and PDF generation)
+═════════════════════════════════════════════════════════════ */
+</style>
+</head>
+<body>
+
+<!-- ══════════════ APP HEADER ══════════════ -->
+<header class="app-header">
+  <div>
+    <h1>📊 نظام تقارير دعم التميز المدرسي</h1>
+    <div class="sub">إنتاج تقارير PDF آلية مباشرةً من بيانات Excel — يعمل من أي متصفح</div>
+  </div>
+  <div id="statusPill" class="status-pill none">⚪ لم يُحمَّل ملف بعد</div>
+</header>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div class="wrap">
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="card-title">📁 تحميل ملف البيانات (Excel)</div>
+    <div class="info-box" style="margin-bottom:14px;">
+      <b>طريقتان لتحميل البيانات:</b><br>
+      ١. <b>تلقائي:</b> ضع ملف Excel باسم <code>report.xlsx</code> داخل مجلد <code>data/</code> في الـ repository — سيتم تحميله تلقائيًا.<br>
+      ٢. <b>يدوي:</b> انقر أو اسحب الملف أدناه لتحميله مباشرةً من جهازك (للتحديث الأسبوعي).
+    </div>
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+      <div class="upload-ico">📂</div>
+      <div class="upload-t">اسحب ملف Excel هنا أو انقر للاختيار</div>
+      <div class="upload-s">صيغ مدعومة: .xlsx | .xls — ملف الاستجابات من Microsoft Forms</div>
+    </div>
+    <input type="file" id="fileIn" accept=".xlsx,.xls" style="display:none">
+  </div>
+
+  <!-- Filters Card (hidden until data loads) -->
+  <div class="card" id="filtersCard" style="display:none">
+    <div class="card-title">🔍 فلاتر إنشاء التقارير</div>
+
+    <div class="filters-grid">
+      <div class="fg">
+        <label>📍 القطاع</label>
+        <select id="fSector" onchange="onSectorChange()">
+          <option value="">— جميع القطاعات —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>📅 الأسبوع الدراسي</label>
+        <select id="fWeek" onchange="onFilterChange()">
+          <option value="">— جميع الأسابيع —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>🗓️ التاريخ</label>
+        <select id="fDate" onchange="onFilterChange()">
+          <option value="">— جميع التواريخ —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>🌤️ اليوم</label>
+        <select id="fDay" onchange="onFilterChange()">
+          <option value="">— جميع الأيام —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>👤 المشرف التربوي</label>
+        <select id="fSup" onchange="onFilterChange()">
+          <option value="">— جميع المشرفين —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stats-left">
+        <span class="stats-lbl">التقارير المطابقة:</span>
+        <span class="stats-num" id="matchCount">0</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-o" id="btnPrev"   onclick="doPreview()"  disabled>👁️ معاينة</button>
+        <button class="btn btn-p" id="btnOne"    onclick="doSingle()"   disabled>⬇️ تحميل تقرير واحد</button>
+        <button class="btn btn-g" id="btnBatch"  onclick="doBatch()"    disabled>📦 تحميل الكل ZIP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Card -->
+  <div class="card prog-wrap" id="progCard">
+    <div class="card-title">⏳ جاري إنشاء التقارير...</div>
+    <div class="prog-row">
+      <span id="progLbl">جاري التحضير...</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progBar" style="width:0%"></div></div>
+    <div class="prog-det" id="progDet"></div>
+    <button class="btn btn-d" style="margin-top:12px" onclick="doCancel()">⛔ إلغاء</button>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ══════════════ PREVIEW MODAL ══════════════ -->
+<div class="modal-bg" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <strong>معاينة التقرير</strong>
+      <div style="display:flex;gap:10px">
+        <button class="btn" style="background:#fff;color:var(--c1);padding:6px 16px;font-size:.82rem" onclick="doSingle()">⬇️ PDF</button>
+        <button class="btn btn-d" style="padding:6px 14px" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TOAST ══════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ HIDDEN RENDER TARGET ══════════════ -->
+<div id="renderTarget" style="position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1;"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ──────────────────────────────────────────────────────────────
+   COLUMN → FIELD MAPPING
+   Keys must exactly match the trimmed header text in the Excel file
+────────────────────────────────────────────────────────────── */
+const F = {
+  // Filter columns
+  week:     'الأسبوع الدراسي',
+  day:      'اليوم',
+  date:     'التاريخ',
+  sector:   'القطاع',
+  sup:      'جميع المشرفين',          // col FG (not FA!)
+
+  // Report header
+  id:          'Id',
+  task:        'المهمة حسب خطة المشرف التربوي',
+  svcSchools:  'جميع مدارس الخدمة',   // col FB
+  svcType:     'نوع الخدمة9',
+  schTypes:    'جميع النوع',           // col FC
+  schLevels:   'جميع المراحل',         // col FD
+  assigned:    'جميع مدارس التكليف',   // col FE
+  additional:  'جميع المدارس الإضافية',// col FF
+  arrive:      'وقت الحضور9',
+  depart:      'وقت الانصراف9',
+  madrasati:   'تفعّل المدرسة التعليم الالكتروني من خلال منصة مدرستي',
+
+  // Main section content
+  expSup:   'الخبرات الإشرافية التي قدمها المشرف التربوي للمدرسة',
+  inits:    'المبادرات التي نفذت داخل المدرسة بدعم من مشرف مقدم الخدمة',
+  recs:     'التوصيات التي قدمها مشرف دعم التميز لمدير/ة المدرسة',
+  suggest:  'مقترحات (ملحوظات مرصودة) للفريق التنفيذي',
+
+  // Page-2 sections
+  treatments: 'أبرز المعالجات التي تمت في المجالات الأربعة',
+  challenges: 'أبرز التحديات الإدارية والفنية في المدرسة',
+  domains:    'حدد مجالات الدعم الرئيسة التي ساهم المشرف بها خلال اليوم الدراسي',
+
+  teachAct:   'الاجراءات المنفذة من قبل المشرف التربوي في مجال التدريس:',
+  teachCnt:   'ما عدد الإجراءات المنفذه خلال الأسبوع في مجال التدريس',
+  learnAct:   'الاجراءات المنفذة من قبل المشرف التربوي في مجال نواتج التعلم:',
+  learnCnt:   'ما عدد الإجراءات المنفذه خلال الأسبوع في مجال نواتج التعلم',
+  guidAct:    'الاجراءات المنفذة من قبل المشرف التربوي في مجال التوجيه الطلابي',
+  guidCnt:    'ما عدد الإجراءات المنفذه خلال الأسبوع في مجال التوجية الطلابي',
+  actAct:     'الاجراءات المنفذة من قبل المشرف التربوي في مجال النشاط الطلابي',
+  actCnt:     'ما عدد الإجراءات المنفذه خلال الأسبوع في مجال النشاط الطلابي',
+  empower:    'كيف ساهمت الإجراءات التي نفذتها في تعزيز تمكين المدرسة؟',
+  princPart:  'من وجهة نظرك ما مدى مشاركة مدير المدرسة واللجان المعنية في قيادة عمليات الدعم',
+  selfAssess: 'تقييمك الذاتي لليوم الإشرافي',
+  attach:     'مرفقات وشواهد داعمة للجهود أو خطاب لتحديات يلزم بها التبليغ:',
+
+  // Domain detail refinements (cols FH–FK)
+  dd1: 'تفصيل المجالات تعديل١',
+  dd2: 'تفصيل المجالات تعديل٢',
+  dd3: 'تفصيل المجالات تعديل٣',
+  dd4: 'تفصيل المجالات تعديل٤',
+};
+
+/* ──────────────────────────────────────────────────────────────
+   STATE
+────────────────────────────────────────────────────────────── */
+let allRows      = [];
+let filtered     = [];
+let cancelled    = false;
+let previewRow   = null;
+
+/* ──────────────────────────────────────────────────────────────
+   INIT
+────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  initDrop();
+  document.getElementById('fileIn').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+  // Try auto-load from data/ folder
+  tryAutoLoad();
+});
+
+async function tryAutoLoad() {
+  try {
+    const res = await fetch('./data/report.xlsx', {cache:'no-cache'});
+    if (!res.ok) return;
+    const buf = await res.arrayBuffer();
+    await parseExcel(buf);
+    setStatus('✅ تم تحميل البيانات من data/report.xlsx', 'ok');
+    toast('✅ تم تحميل الملف تلقائيًا');
+  } catch(e) {/* no auto-file — that's fine */}
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DRAG & DROP
+────────────────────────────────────────────────────────────── */
+function initDrop() {
+  const z = document.getElementById('dropZone');
+  z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('over'); });
+  z.addEventListener('dragleave', ()  => z.classList.remove('over'));
+  z.addEventListener('drop',      e  => {
+    e.preventDefault(); z.classList.remove('over');
+    if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+  });
+}
+
+async function processFile(file) {
+  if (!/\.xlsx?$/i.test(file.name)) { toast('⚠️ يرجى رفع ملف .xlsx أو .xls'); return; }
+  setStatus('⏳ جاري التحميل...', 'loading');
+  try {
+    const buf = await file.arrayBuffer();
+    await parseExcel(buf);
+    setStatus(`✅ ${file.name}`, 'ok');
+    toast(`✅ تم تحميل ${allRows.length.toLocaleString('ar')} سجل`);
+  } catch(e) {
+    setStatus('❌ خطأ في القراءة', 'none');
+    toast('❌ فشل تحميل الملف: ' + e.message);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   EXCEL PARSING
+────────────────────────────────────────────────────────────── */
+async function parseExcel(buf) {
+  const wb = XLSX.read(buf, { cellDates:true, dateNF:'yyyy-mm-dd', raw:false });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:false, dateNF:'yyyy-mm-dd' });
+
+  const hdrs = raw[0].map(h => (h || '').toString().trim());
+
+  allRows = raw.slice(1)
+    .filter(r => r.some(c => c !== ''))
+    .map(row => {
+      const obj = {};
+      hdrs.forEach((h, i) => {
+        if (h) obj[h] = (row[i] !== undefined && row[i] !== null)
+                          ? row[i].toString().trim() : '';
+      });
+      return obj;
+    });
+
+  document.getElementById('filtersCard').style.display = 'block';
+  buildFilters();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   FILTERS
+────────────────────────────────────────────────────────────── */
+function uniq(arr) {
+  return [...new Set(arr.filter(v => v && v.trim() !== '' &&
+    v !== 'undefined' && v !== 'null' && v !== '0'))].sort();
+}
+
+function fillSelect(id, vals, keepFirst=true) {
+  const sel = document.getElementById(id);
+  const first = keepFirst ? sel.options[0].outerHTML : '';
+  sel.innerHTML = first;
+  vals.forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+
+function buildFilters() {
+  fillSelect('fSector', uniq(allRows.map(r => r[F.sector])));
+  fillSelect('fWeek',   uniq(allRows.map(r => r[F.week])));
+  fillSelect('fDate',   uniq(allRows.map(r => fmtDate(r[F.date]))).reverse());
+  fillSelect('fDay',    uniq(allRows.map(r => r[F.day])));
+  refreshSups();
+  applyFilters();
+}
+
+function refreshSups() {
+  const sec = document.getElementById('fSector').value;
+  const pool = sec ? allRows.filter(r => r[F.sector] === sec) : allRows;
+  const sups = uniq(pool.map(r => r[F.sup]).filter(v => v && v !== 'مهمة'));
+  fillSelect('fSup', sups);
+}
+
+function onSectorChange() { refreshSups(); applyFilters(); }
+function onFilterChange()  { applyFilters(); }
+
+function applyFilters() {
+  const sec = document.getElementById('fSector').value;
+  const wk  = document.getElementById('fWeek').value;
+  const dt  = document.getElementById('fDate').value;
+  const dy  = document.getElementById('fDay').value;
+  const sup = document.getElementById('fSup').value;
+
+  filtered = allRows.filter(r => {
+    if (sec && r[F.sector] !== sec) return false;
+    if (wk  && r[F.week]   !== wk)  return false;
+    if (dt  && fmtDate(r[F.date]) !== dt) return false;
+    if (dy  && r[F.day]    !== dy)  return false;
+    if (sup && r[F.sup]    !== sup) return false;
+    if (!r[F.sup] || r[F.sup] === 'مهمة') return false;
+    return true;
+  });
+
+  const n = filtered.length;
+  document.getElementById('matchCount').textContent = n.toLocaleString('ar-SA');
+
+  const has = n > 0;
+  ['btnPrev','btnOne','btnBatch'].forEach(id =>
+    document.getElementById(id).disabled = !has
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DATE HELPER
+────────────────────────────────────────────────────────────── */
+function fmtDate(v) {
+  if (!v) return '';
+  // SheetJS returns date as string 'yyyy-mm-dd' when dateNF is set
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return v;
+}
+
+function fmtDateForFilename(v) {
+  return fmtDate(v).replace(/\//g, '-');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GET VALUE HELPER
+────────────────────────────────────────────────────────────── */
+function g(row, key) {
+  // key can be a F-key (e.g. 'sec') or a raw column name
+  const fieldName = F[key] !== undefined ? F[key] : key;
+  const v = row[fieldName] || '';
+  if (!v || v === 'undefined' || v === 'null' || v === '0' || v === 'NaN') return '';
+  return v;
+}
+function gd(row, key) { return g(row, key) || '—'; } // with default dash
+
+/* ──────────────────────────────────────────────────────────────
+   REPORT HTML TEMPLATE
+────────────────────────────────────────────────────────────── */
+function buildReportHTML(row) {
+  const date    = fmtDate(row[F.date]);
+  const sector  = row[F.sector] || '—';
+  const sup     = row[F.sup]    || '—';
+  const week    = row[F.week]   || '—';
+  const day     = row[F.day]    || '—';
+
+  function sec(title, content, minH='55px') {
+    return `
+    <div style="border:1px solid #245966;margin-bottom:4px;">
+      <div style="background:#245966;color:#fff;padding:7px 14px;font-weight:700;font-size:9pt;">
+        ${title}
+      </div>
+      <div style="min-height:${minH};padding:8px 14px;background:#F5FAFB;font-size:8.5pt;line-height:1.7;white-space:pre-wrap;">${content || '—'}</div>
+    </div>`;
+  }
+
+  function domainSec(title, content, count, countTitle) {
+    return `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px;border:1px solid #245966;">
+      <tr>
+        <td style="width:80%;vertical-align:top;">
+          <div style="background:#245966;color:#fff;padding:7px 14px;font-weight:700;font-size:9pt;">${title}</div>
+          <div style="min-height:70px;padding:8px 14px;background:#F5FAFB;font-size:8.5pt;line-height:1.7;white-space:pre-wrap;">${content || '—'}</div>
+        </td>
+        <td style="width:20%;vertical-align:top;background:#1B5E70;color:#fff;text-align:center;padding:8px 6px;border-right:2px solid #245966;">
+          <div style="font-size:7.5pt;font-weight:700;line-height:1.4;margin-bottom:8px;">${countTitle}</div>
+          <div style="font-size:1.5rem;font-weight:900;">${count || '—'}</div>
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  return `
+<div style="font-family:'Cairo','Arial',Tahoma,sans-serif;direction:rtl;font-size:9pt;color:#1A1A1A;background:#fff;padding:10mm;width:100%;">
+
+  <!-- ══ HEADER ══ -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #245966;padding-bottom:8px;margin-bottom:6px;">
+    <div style="font-size:7.5pt;line-height:1.5;text-align:right;color:#245966;font-weight:700;">
+      تعليم الشرقية<br>إدارة أداء التعليم<br>
+      <span style="font-size:7pt;font-weight:400;color:#555;">الفريق التنفيذي</span><br>
+      <span style="font-size:9pt;font-weight:800;color:#1B5E70;">وزارة التعليم</span>
+    </div>
+    <div style="flex:1;text-align:center;padding:0 10px;">
+      <div style="font-size:7.5pt;color:#555;margin-bottom:3px;">رقم التقرير: ${row[F.id]||''}</div>
+      <div style="font-size:12.5pt;font-weight:900;line-height:1.4;color:#1A1A1A;">تقرير المتابعة الأسبوعية للمشرف التربوي مقدم</div>
+      <div style="font-size:12.5pt;font-weight:900;line-height:1.4;color:#1A1A1A;">خدمة دعم التميز المدرسي الفصل الأول ١٤٤٧هـ</div>
+    </div>
+    <div style="width:80px;text-align:left;">
+      <div style="width:60px;height:60px;border:2px solid #245966;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7pt;text-align:center;color:#245966;font-weight:700;padding:4px;">وزارة<br>التعليم</div>
+    </div>
+  </div>
+
+  <!-- ══ INFO TABLE ══ -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
+    <tr>
+      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">الأسبوع</th>
+      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">اليوم</th>
+      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">التاريخ</th>
+      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">القطاع</th>
+    </tr>
+    <tr>
+      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${week}</td>
+      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${day}</td>
+      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${date}</td>
+      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:9pt;font-weight:700;">${sector}</td>
+    </tr>
+  </table>
+
+  <!-- ══ SUPERVISOR BAR ══ -->
+  <div style="background:#EBF5F7;border:1.5px solid #245966;padding:7px 14px;margin-bottom:4px;display:flex;align-items:center;gap:12px;">
+    <span style="font-weight:800;color:#245966;font-size:9.5pt;white-space:nowrap;">اسم المشرف / المشرفة:</span>
+    <span style="font-weight:900;font-size:11pt;color:#1A1A1A;">${sup}</span>
+  </div>
+
+  <!-- ══ TASK TABLE ══ -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;font-size:8pt;">
+    <tr>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:28%;">المهمة حسب خطة المشرف التربوي</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:28%;">المدرسة التي سيقدم لها الخدمة</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:16%;">نوع الخدمة</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:12%;">نوع المدرسة</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:16%;">المرحلة الدراسية</th>
+    </tr>
+    <tr>
+      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'task')}</td>
+      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'svcSchools')}</td>
+      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'svcType')}</td>
+      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'schTypes')}</td>
+      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'schLevels')}</td>
+    </tr>
+  </table>
+
+  <!-- ══ SCHOOLS ══ -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;font-size:8pt;">
+    <tr>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 10px;border:1px solid #245966;text-align:right;width:50%;">اسم المدرسة المكلف بتقديم الخدمة لها :</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px 10px;border:1px solid #245966;text-align:right;width:50%;">اسم المدرسة الإضافية :</th>
+    </tr>
+    <tr>
+      <td style="background:#F0F8FA;padding:5px 10px;border:1px solid #C0D8DF;">${gd(row,'assigned')}</td>
+      <td style="background:#F0F8FA;padding:5px 10px;border:1px solid #C0D8DF;">${gd(row,'additional')}</td>
+    </tr>
+  </table>
+
+  <!-- ══ ATTENDANCE ══ -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8pt;">
+    <tr>
+      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:34%;">تفعيل منصة مدرستي</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:33%;">وقت الحضور</th>
+      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:33%;">وقت الانصراف</th>
+    </tr>
+    <tr>
+      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'madrasati')}</td>
+      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'arrive')}</td>
+      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'depart')}</td>
+    </tr>
+  </table>
+
+  ${sec('الخبرات الإشرافية التي قدمها المشرف التربوي للمدرسة', g(row,'expSup'), '70px')}
+  ${sec('المبادرات التي نفذت داخل المدرسة بدعم من مشرف مقدم الخدمة', g(row,'inits'), '70px')}
+  ${sec('التوصيات التي قدمها مشرف دعم التميز لمدير/ة المدرسة', g(row,'recs'), '60px')}
+  ${sec('مقترحات (ملحوظات مرصودة) للفريق التنفيذي', g(row,'suggest'), '60px')}
+
+  <!-- ══ PAGE 2 ══ -->
+  <div style="page-break-before:always;break-before:page;padding-top:6mm;">
+
+  <!-- P2 Mini header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #245966;padding-bottom:6px;margin-bottom:6px;">
+    <div style="font-size:7pt;color:#245966;font-weight:700;">تعليم الشرقية | إدارة أداء التعليم</div>
+    <div style="font-size:10pt;font-weight:800;color:#1A1A1A;">تقرير المتابعة الأسبوعية — ${sup} — ${date}</div>
+  </div>
+
+  ${sec('أبرز المعالجات التي تمت في المجالات الأربعة', g(row,'treatments'), '80px')}
+  ${sec('أبرز التحديات الإدارية والفنية في المدرسة', g(row,'challenges'), '65px')}
+  ${sec('حدد مجالات الدعم الرئيسة التي ساهم المشرف بها خلال اليوم الدراسي', g(row,'domains'), '55px')}
+
+  ${domainSec(
+    'الإجراءات المنفذة من قبل المشرف التربوي في مجال التدريس:',
+    g(row,'teachAct'), g(row,'teachCnt'),
+    'عدد الإجراءات المنفذه خلال الأسبوع في مجال التدريس'
+  )}
+  ${domainSec(
+    'الإجراءات المنفذة من قبل المشرف التربوي في مجال نواتج التعلم:',
+    g(row,'learnAct'), g(row,'learnCnt'),
+    'عدد الإجراءات المنفذه خلال الأسبوع في مجال نواتج التعلم'
+  )}
+  ${domainSec(
+    'الإجراءات المنفذة من قبل المشرف التربوي في مجال التوجيه الطلابي:',
+    g(row,'guidAct'), g(row,'guidCnt'),
+    'عدد الإجراءات المنفذه خلال الأسبوع في مجال التوجية الطلابي'
+  )}
+  ${domainSec(
+    'الإجراءات المنفذة من قبل المشرف التربوي في مجال النشاط الطلابي:',
+    g(row,'actAct'), g(row,'actCnt'),
+    'عدد الإجراءات المنفذه خلال الأسبوع في مجال النشاط الطلابي'
+  )}
+  ${sec('كيف ساهمت الإجراءات التي نفذتها في تعزيز تمكين المدرسة؟', g(row,'empower'), '55px')}
+  ${sec('من وجهة نظرك: مدى مشاركة مدير المدرسة واللجان المعنية في قيادة عمليات الدعم', g(row,'princPart'), '55px')}
+  ${sec('التقييم الذاتي لليوم الإشرافي', g(row,'selfAssess'), '50px')}
+  ${sec('مرفقات وشواهد داعمة للجهود أو خطاب لتحديات يلزم بها التبليغ', g(row,'attach'), '45px')}
+
+  <!-- Footer -->
+  <div style="display:flex;justify-content:space-between;background:#245966;color:#fff;padding:6px 12px;font-size:8pt;margin-top:8px;border-radius:0 0 4px 4px;">
+    <span>المشرف: ${sup}</span>
+    <span>القطاع: ${sector}</span>
+    <span>التاريخ: ${date}</span>
+  </div>
+
+  </div><!-- /page-2 -->
+</div><!-- /report -->`;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   FILE NAMING
+────────────────────────────────────────────────────────────── */
+function makeFilename(row) {
+  const sec = (row[F.sector] || 'غير_محدد').replace(/[\\/:\*?"<>|]/g,'').trim();
+  const sup = (row[F.sup]    || 'مشرف').replace(/[\\/:\*?"<>|]/g,'').trim();
+  const dt  = fmtDateForFilename(row[F.date]) || 'تاريخ';
+  return `${sec}-${sup}-${dt}`;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PDF OPTIONS
+────────────────────────────────────────────────────────────── */
+function pdfOpts(filename) {
+  return {
+    margin:      [5,5,5,5],
+    filename,
+    image:       { type:'jpeg', quality:.93 },
+    html2canvas: { scale:1.5, useCORS:true, allowTaint:true, letterRendering:true, logging:false },
+    jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
+    pagebreak:   { mode:['css','legacy'] }
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTIONS
+────────────────────────────────────────────────────────────── */
+function doPreview() {
+  if (!filtered.length) return;
+  previewRow = filtered[0];
+  document.getElementById('modalBody').innerHTML = buildReportHTML(previewRow);
+  document.getElementById('modal').classList.add('on');
+}
+function closeModal() { document.getElementById('modal').classList.remove('on'); }
+
+async function doSingle() {
+  const row = previewRow || filtered[0];
+  if (!row) return;
+  const fname = makeFilename(row) + '.pdf';
+  const tgt = document.getElementById('renderTarget');
+  tgt.innerHTML = buildReportHTML(row);
+  try {
+    await html2pdf().set(pdfOpts(fname)).from(tgt).save();
+    toast('✅ تم تحميل التقرير');
+  } catch(e) {
+    toast('❌ خطأ: ' + e.message);
+  }
+}
+
+async function doBatch() {
+  if (!filtered.length) return;
+  cancelled = false;
+
+  const progCard = document.getElementById('progCard');
+  progCard.classList.add('on');
+  progCard.scrollIntoView({behavior:'smooth'});
+
+  const zip   = new JSZip();
+  const names  = {};
+  const total  = filtered.length;
+  const tgt    = document.getElementById('renderTarget');
+
+  for (let i = 0; i < total; i++) {
+    if (cancelled) break;
+
+    const row   = filtered[i];
+    let base    = makeFilename(row);
+    names[base] = (names[base] || 0) + 1;
+    const fname = names[base] > 1 ? `${base}-${names[base]}.pdf` : `${base}.pdf`;
+
+    // Update progress
+    const pct = Math.round((i / total) * 100);
+    document.getElementById('progBar').style.width = pct + '%';
+    document.getElementById('progPct').textContent = pct + '%';
+    document.getElementById('progLbl').textContent = `إنشاء ${i+1} من ${total}`;
+    document.getElementById('progDet').textContent =
+      `المشرف: ${row[F.sup]||'—'}  |  القطاع: ${row[F.sector]||'—'}  |  التاريخ: ${fmtDate(row[F.date])}`;
+
+    try {
+      tgt.innerHTML = buildReportHTML(row);
+      const blob = await html2pdf()
+        .set({...pdfOpts(fname), filename: fname})
+        .from(tgt)
+        .outputPdf('blob');
+      zip.file(fname, blob);
+    } catch(err) {
+      console.warn(`PDF error for row ${i}:`, err);
+    }
+
+    // yield to browser between PDFs
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  if (!cancelled) {
+    document.getElementById('progLbl').textContent = 'جاري ضغط الملفات...';
+    document.getElementById('progBar').style.width = '100%';
+    document.getElementById('progPct').textContent = '100%';
+
+    const content = await zip.generateAsync({ type:'blob',
+      compression:'DEFLATE', compressionOptions:{level:6} });
+
+    const today = new Date().toLocaleDateString('ar-EG').replace(/\//g,'-');
+    saveAs(content, `تقارير-دعم-التميز-${today}.zip`);
+
+    document.getElementById('progLbl').textContent = `✅ تم إنشاء ${total} تقرير بنجاح وحفظها في ملف ZIP`;
+    toast(`✅ تم تحميل ${total} تقرير PDF`);
+  } else {
+    document.getElementById('progLbl').textContent = '⚠️ تم إلغاء العملية';
+  }
+
+  setTimeout(() => progCard.classList.remove('on'), 4000);
+}
+
+function doCancel() { cancelled = true; }
+
+/* ──────────────────────────────────────────────────────────────
+   UI HELPERS
+────────────────────────────────────────────────────────────── */
+function setStatus(msg, type) {
+  const el = document.getElementById('statusPill');
+  el.textContent = msg;
+  el.className = 'status-pill ' + type;
+}
+
+let toastTimer;
+function toast(msg) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// Close modal on background click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
