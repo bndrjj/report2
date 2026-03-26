@@ -250,7 +250,7 @@ a{color:inherit;}
       </div>
       <div class="fg">
         <label>📅 الأسبوع الدراسي</label>
-        <select id="fWeek" onchange="onFilterChange()">
+        <select id="fWeek" onchange="onWeekChange()">
           <option value="">— جميع الأسابيع —</option>
         </select>
       </div>
@@ -264,6 +264,14 @@ a{color:inherit;}
         <label>🌤️ اليوم</label>
         <select id="fDay" onchange="onFilterChange()">
           <option value="">— جميع الأيام —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>⚧ النوع (الجنس)</label>
+        <select id="fGender" onchange="onGenderChange()">
+          <option value="">— بنين وبنات —</option>
+          <option value="بنين">بنين</option>
+          <option value="بنات">بنات</option>
         </select>
       </div>
       <div class="fg">
@@ -434,7 +442,7 @@ async function processFile(file) {
     const buf = await file.arrayBuffer();
     await parseExcel(buf);
     setStatus(`✅ ${file.name}`, 'ok');
-    toast(`✅ تم تحميل ${allRows.length.toLocaleString('ar')} سجل`);
+    toast(`✅ تم تحميل ${allRows.length.toLocaleString('en-US')} سجل`);
   } catch(e) {
     setStatus('❌ خطأ في القراءة', 'none');
     toast('❌ فشل تحميل الملف: ' + e.message);
@@ -487,47 +495,113 @@ function fillSelect(id, vals, keepFirst=true) {
 
 function buildFilters() {
   fillSelect('fSector', uniq(allRows.map(r => r[F.sector])));
-  fillSelect('fWeek',   uniq(allRows.map(r => r[F.week])));
-  fillSelect('fDate',   uniq(allRows.map(r => fmtDate(r[F.date]))).reverse());
-  fillSelect('fDay',    uniq(allRows.map(r => r[F.day])));
+  fillSelect('fWeek', uniq(allRows.map(r => r[F.week])));
+  fillSelect('fDate', uniq(allRows.map(r => fmtDate(r[F.date]))).reverse());
+  fillSelect('fDay', uniq(allRows.map(r => r[F.day])));
   refreshSups();
   applyFilters();
+}
+const sectorTypeMap = {
+  'الدمام': 'النوع',
+  'الخبر': 'النور1',
+  'القطيف': 'النور2',
+  'رأس تنورة': 'النور3',
+  'الجبيل': 'النور4',
+  'بقيق': 'النور5',
+  'النعيرية': 'النور6',
+  'قرية العليا': 'النور7',
+  'الخفجي': 'النور8',
+  'حفر الباطن': 'النور9'
+};
+function getRowGender(row) {
+  const sec = row[F.sector];
+  const col = sectorTypeMap[sec];
+  if (!col) return '';
+  return (row[col] || '').trim();
+}
+function arabicToLatin(str) {
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+}
+function parseWeekRange(weekLabel) {
+  if (!weekLabel) return null;
+  const latin = arabicToLatin(weekLabel);
+  const match = latin.match(/(\d{4})\/(\d{2})\/(\d{2})\s+إلى\s+(\d{4})\/(\d{2})\/(\d{2})/);
+  if (!match) return null;
+  const start = new Date(match[1] + '-' + match[2] + '-' + match[3]);
+  const end = new Date(match[4] + '-' + match[5] + '-' + match[6]);
+  end.setHours(23, 59, 59);
+  return { start, end };
+}
+function refreshDates() {
+  const wk = document.getElementById('fWeek').value;
+  const range = parseWeekRange(wk);
+  let pool = allRows;
+  if (wk) pool = pool.filter(r => r[F.week] === wk);
+  if (range) {
+    pool = pool.filter(r => {
+      if (!r[F.date]) return false;
+      const d = new Date(r[F.date]);
+      return d >= range.start && d <= range.end;
+    });
+  }
+  const dates = uniq(pool.map(r => fmtDate(r[F.date]))).reverse();
+  fillSelect('fDate', dates);
 }
 
 function refreshSups() {
   const sec = document.getElementById('fSector').value;
-  const pool = sec ? allRows.filter(r => r[F.sector] === sec) : allRows;
+  const gender = document.getElementById('fGender') ? document.getElementById('fGender').value : '';
+  let pool = allRows;
+  if (sec) pool = pool.filter(r => r[F.sector] === sec);
+  if (gender) pool = pool.filter(r => getRowGender(r) === gender);
   const sups = uniq(pool.map(r => r[F.sup]).filter(v => v && v !== 'مهمة'));
   fillSelect('fSup', sups);
 }
 
-function onSectorChange() { refreshSups(); applyFilters(); }
-function onFilterChange()  { applyFilters(); }
+function onSectorChange() {
+  refreshSups();
+  refreshDates();
+  applyFilters();
+}
+function onFilterChange() {
+  applyFilters();
+}
+function onWeekChange() {
+  refreshDates();
+  applyFilters();
+}
+function onGenderChange() {
+  refreshSups();
+  refreshDates();
+  applyFilters();
+}
 
 function applyFilters() {
   const sec = document.getElementById('fSector').value;
-  const wk  = document.getElementById('fWeek').value;
-  const dt  = document.getElementById('fDate').value;
-  const dy  = document.getElementById('fDay').value;
+  const wk = document.getElementById('fWeek').value;
+  const dt = document.getElementById('fDate').value;
+  const dy = document.getElementById('fDay').value;
   const sup = document.getElementById('fSup').value;
-
+  const gender = document.getElementById('fGender') ? document.getElementById('fGender').value : '';
+  const range = parseWeekRange(wk);
   filtered = allRows.filter(r => {
     if (sec && r[F.sector] !== sec) return false;
-    if (wk  && r[F.week]   !== wk)  return false;
-    if (dt  && fmtDate(r[F.date]) !== dt) return false;
-    if (dy  && r[F.day]    !== dy)  return false;
-    if (sup && r[F.sup]    !== sup) return false;
+    if (wk && r[F.week] !== wk) return false;
+    if (range && r[F.date]) {
+      const d = new Date(r[F.date]);
+      if (d < range.start || d > range.end) return false;
+    }
+    if (dt && fmtDate(r[F.date]) !== dt) return false;
+    if (dy && r[F.day] !== dy) return false;
+    if (sup && r[F.sup] !== sup) return false;
+    if (gender && getRowGender(r) !== gender) return false;
     if (!r[F.sup] || r[F.sup] === 'مهمة') return false;
     return true;
   });
-
   const n = filtered.length;
-  document.getElementById('matchCount').textContent = n.toLocaleString('ar-SA');
-
+  document.getElementById('matchCount').textContent = n.toLocaleString('en-US');
   const has = n > 0;
-  ['btnPrev','btnOne','btnBatch'].forEach(id =>
-    document.getElementById(id).disabled = !has
-  );
+  ['btnPrev','btnOne','btnBatch'].forEach(id => document.getElementById(id).disabled = !has);
 }
 
 /* ──────────────────────────────────────────────────────────────
