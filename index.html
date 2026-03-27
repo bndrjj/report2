@@ -327,7 +327,7 @@ a{color:inherit;}
 <div class="toast" id="toast"></div>
 
 <!-- ══════════════ HIDDEN RENDER TARGET ══════════════ -->
-<div id="renderTarget" style="position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1;"></div>
+<div id="renderTarget" style="position:absolute;left:-9999px;top:0;width:794px;background:#fff;overflow:visible;"></div>
 
 <!-- ════════════════════════════════════════════════════════════
      JAVASCRIPT
@@ -825,7 +825,7 @@ function pdfOpts(filename) {
     margin:      [5,5,5,5],
     filename,
     image:       { type:'jpeg', quality:.93 },
-    html2canvas: { scale:1.5, useCORS:true, allowTaint:true, letterRendering:true, logging:false },
+    html2canvas: { scale:2, useCORS:true, allowTaint:true, letterRendering:true, logging:false, scrollX:0, scrollY:0 },
     jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
     pagebreak:   { mode:['css','legacy'] }
   };
@@ -848,6 +848,9 @@ async function doSingle() {
   const fname = makeFilename(row) + '.pdf';
   const tgt = document.getElementById('renderTarget');
   tgt.innerHTML = buildReportHTML(row);
+  // Wait for fonts and layout to be fully rendered before capture
+  await document.fonts.ready;
+  await new Promise(r => setTimeout(r, 400));
   try {
     await html2pdf().set(pdfOpts(fname)).from(tgt).save();
     toast('✅ تم تحميل التقرير');
@@ -887,6 +890,9 @@ async function doBatch() {
 
     try {
       tgt.innerHTML = buildReportHTML(row);
+      // Wait for fonts and layout before capture
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 250));
       const blob = await html2pdf()
         .set({...pdfOpts(fname), filename: fname})
         .from(tgt)
