@@ -435,6 +435,8 @@ let filtered     = [];
 let cancelled    = false;
 let previewRow   = null;
 let inlinePreviewActive = false;
+let eduLogoSrc = './edulogo.svg';
+let eduLogoDataUriPromise = null;
 
 /* ──────────────────────────────────────────────────────────────
    INIT
@@ -444,9 +446,28 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fileIn').addEventListener('change', e => {
     if (e.target.files[0]) processFile(e.target.files[0]);
   });
+  ensureEduLogoDataUri();
   // Try auto-load from data/ folder
   tryAutoLoad();
 });
+
+async function ensureEduLogoDataUri() {
+  if (eduLogoSrc.startsWith('data:')) return eduLogoSrc;
+  if (!eduLogoDataUriPromise) {
+    eduLogoDataUriPromise = (async () => {
+      try {
+        const res = await fetch('./edulogo.svg', { cache:'force-cache' });
+        if (!res.ok) return eduLogoSrc;
+        const svg = await res.text();
+        eduLogoSrc = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        return eduLogoSrc;
+      } catch {
+        return eduLogoSrc;
+      }
+    })();
+  }
+  return eduLogoDataUriPromise;
+}
 
 async function tryAutoLoad() {
   try {
@@ -676,13 +697,13 @@ function gd(row, key) { return g(row, key) || '—'; } // with default dash
 /* ──────────────────────────────────────────────────────────────
    REPORT HTML TEMPLATE
 ────────────────────────────────────────────────────────────── */
-function buildReportHTML(row) {
+function buildReportHTML(row, logoSrc = eduLogoSrc) {
   const date    = fmtDate(row[F.date]);
   const sector  = row[F.sector] || '—';
   const sup     = row[F.sup]    || '—';
   const week    = row[F.week]   || '—';
   const day     = row[F.day]    || '—';
-  const eduLogo = './edulogo.svg';
+  const eduLogo = logoSrc || './edulogo.svg';
 
   /* ─── Design tokens (inspired by progress-report style) ─── */
   const C = {
@@ -953,7 +974,8 @@ async function doSingle() {
   if (!row) return;
   const fname = makeFilename(row) + '.pdf';
   // Use HTML string approach (not DOM element) to avoid blank PDF issue with html2canvas
-  const htmlContent = buildReportHTML(row);
+  const logoSrc = await ensureEduLogoDataUri();
+  const htmlContent = buildReportHTML(row, logoSrc);
   try {
     await html2pdf().set(pdfOpts(fname)).from(htmlContent).save();
     toast('✅ تم تحميل التقرير');
@@ -991,7 +1013,8 @@ async function doBatch() {
 
     try {
       // Use HTML string approach (not DOM element) to avoid blank PDF issue with html2canvas
-      const htmlContent = buildReportHTML(row);
+      const logoSrc = await ensureEduLogoDataUri();
+      const htmlContent = buildReportHTML(row, logoSrc);
       const blob = await html2pdf()
         .set({...pdfOpts(fname), filename: fname})
         .from(htmlContent)
