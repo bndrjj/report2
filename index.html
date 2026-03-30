@@ -1073,8 +1073,16 @@ async function doBatch() {
     const content = await zip.generateAsync({ type:'blob',
       compression:'DEFLATE', compressionOptions:{level:6} });
 
-    const today = new Date().toLocaleDateString('ar-EG').replace(/\//g,'-');
-    saveAs(content, `تقارير-دعم-التميز-${today}.zip`);
+    // Build descriptive ZIP filename from current filter selections
+    const _sec    = document.getElementById('fSector').value  || 'جميع القطاعات';
+    const _sup    = document.getElementById('fSup').value     || 'جميع المشرفين';
+    const _gender = document.getElementById('fGender').value  || 'الكل';
+    const _wk     = document.getElementById('fWeek').value    || 'جميع الأسابيع';
+    const _dt     = document.getElementById('fDate').value    || 'جميع التواريخ';
+    const zipName = [_sec, _sup, _gender, _wk, _dt]
+      .map(p => p.replace(/[\\/:\*?"<>|]/g, '').trim())
+      .join(' - ');
+    saveAs(content, `${zipName}.zip`);
 
     document.getElementById('progLbl').textContent = `✅ تم إنشاء ${total} تقرير بنجاح وحفظها في ملف ZIP`;
     toast(`✅ تم تحميل ${total} تقرير PDF`);
