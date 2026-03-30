@@ -327,7 +327,7 @@ a{color:inherit;}
 <div class="toast" id="toast"></div>
 
 <!-- ══════════════ HIDDEN RENDER TARGET ══════════════ -->
-<div id="renderTarget" style="position:absolute;left:-9999px;top:0;width:794px;background:#fff;overflow:visible;"></div>
+<div id="renderTarget" style="position:fixed;left:0;top:0;width:794px;background:#fff;overflow:visible;z-index:-9999;pointer-events:none;"></div>
 
 <!-- ════════════════════════════════════════════════════════════
      JAVASCRIPT
@@ -865,7 +865,12 @@ function pdfOpts(filename) {
     margin:      [5,5,5,5],
     filename,
     image:       { type:'jpeg', quality:.93 },
-    html2canvas: { scale:2, useCORS:true, allowTaint:true, letterRendering:true, logging:false, scrollX:0, scrollY:0 },
+    html2canvas: { scale:2, useCORS:true, allowTaint:true, letterRendering:true, logging:false, scrollX:0, scrollY:0,
+                    onclone: function(clonedDoc) {
+                      var el = clonedDoc.getElementById('renderTarget');
+                      if (el) { el.style.position = 'static'; el.style.zIndex = 'auto'; }
+                    }
+                  },
     jsPDF:       { unit:'mm', format:'a4', orientation:'portrait' },
     pagebreak:   { mode:['css','legacy'] }
   };
