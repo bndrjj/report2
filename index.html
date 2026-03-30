@@ -451,18 +451,39 @@ document.addEventListener('DOMContentLoaded', () => {
   tryAutoLoad();
 });
 
-function svgDataUriToPng(svgDataUri, size) {
+function svgToPng(svgText, size) {
   return new Promise((resolve) => {
-    const img = new Image();
+    // Use Blob URL — more reliable than data URI for large/complex SVGs
+    const blob   = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const img    = new Image();
+
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width  = size;
-      canvas.height = size;
-      canvas.getContext('2d').drawImage(img, 0, 0, size, size);
-      resolve(canvas.toDataURL('image/png'));
+      // rAF ensures the browser fully paints the SVG before we capture it
+      requestAnimationFrame(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        URL.revokeObjectURL(blobUrl);
+        try {
+          resolve(canvas.toDataURL('image/png'));
+        } catch (e) {
+          // Canvas tainted fallback
+          resolve('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText));
+        }
+      });
     };
-    img.onerror = () => resolve(svgDataUri); // fallback to SVG if conversion fails
-    img.src = svgDataUri;
+
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      // Last resort: plain SVG data URI (browser preview only — may not render in html2canvas)
+      resolve('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText));
+    };
+
+    img.src = blobUrl;
   });
 }
 
@@ -474,9 +495,8 @@ async function ensureEduLogoDataUri() {
         const res = await fetch('./edulogo.svg', { cache:'force-cache' });
         if (!res.ok) return eduLogoSrc;
         const svg = await res.text();
-        const svgUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         // Convert SVG → PNG so html2canvas renders it correctly in PDF
-        eduLogoSrc = await svgDataUriToPng(svgUri, 300);
+        eduLogoSrc = await svgToPng(svg, 400);
         return eduLogoSrc;
       } catch {
         return eduLogoSrc;
