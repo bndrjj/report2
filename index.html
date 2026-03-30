@@ -126,6 +126,33 @@ a{color:inherit;}
 .stats-lbl{font-size:.82rem;color:var(--clt);}
 .actions{display:flex;gap:10px;flex-wrap:wrap;}
 
+/* ─── Inline Preview ───────────────────────────────────────── */
+.inline-preview{
+  display:none;
+  margin-top:16px;
+  border:1px solid var(--cbrd);
+  border-radius:10px;
+  background:#f5f7f8;
+  overflow:hidden;
+}
+.inline-preview.on{display:block;}
+.inline-preview-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 14px;
+  background:var(--c1);
+  color:#fff;
+}
+.inline-preview-head strong{font-size:.92rem;}
+.inline-preview-body{
+  max-height:70vh;
+  overflow:auto;
+  padding:12px;
+  background:#f0f0f0;
+}
+
 /* ─── Buttons ─────────────────────────────────────────────── */
 .btn{
   padding:10px 20px;border:none;border-radius:8px;
@@ -288,10 +315,19 @@ a{color:inherit;}
         <span class="stats-num" id="matchCount">0</span>
       </div>
       <div class="actions">
+        <button class="btn btn-p" id="btnInlinePrev" onclick="doInlinePreview()" disabled>🧾 استعراض التقرير</button>
         <button class="btn btn-o" id="btnPrev"   onclick="doPreview()"  disabled>👁️ معاينة</button>
         <button class="btn btn-p" id="btnOne"    onclick="doSingle()"   disabled>⬇️ تحميل تقرير واحد</button>
         <button class="btn btn-g" id="btnBatch"  onclick="doBatch()"    disabled>📦 تحميل الكل ZIP</button>
       </div>
+    </div>
+
+    <div class="inline-preview" id="inlinePreview">
+      <div class="inline-preview-head">
+        <strong>استعراض التقرير داخل الصفحة</strong>
+        <button class="btn btn-d" style="padding:6px 14px" onclick="hideInlinePreview()">إخفاء</button>
+      </div>
+      <div class="inline-preview-body" id="inlinePreviewBody"></div>
     </div>
   </div>
 
@@ -398,6 +434,7 @@ let allRows      = [];
 let filtered     = [];
 let cancelled    = false;
 let previewRow   = null;
+let inlinePreviewActive = false;
 
 /* ──────────────────────────────────────────────────────────────
    INIT
@@ -601,7 +638,12 @@ function applyFilters() {
   const n = filtered.length;
   document.getElementById('matchCount').textContent = n.toLocaleString('en-US');
   const has = n > 0;
-  ['btnPrev','btnOne','btnBatch'].forEach(id => document.getElementById(id).disabled = !has);
+  ['btnInlinePrev','btnPrev','btnOne','btnBatch'].forEach(id => document.getElementById(id).disabled = !has);
+
+  if (inlinePreviewActive) {
+    if (has) doInlinePreview();
+    else hideInlinePreview();
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -891,6 +933,20 @@ function doPreview() {
   document.getElementById('modal').classList.add('on');
 }
 function closeModal() { document.getElementById('modal').classList.remove('on'); }
+
+function doInlinePreview() {
+  if (!filtered.length) return;
+  previewRow = filtered[0];
+  document.getElementById('inlinePreviewBody').innerHTML = buildReportHTML(previewRow);
+  document.getElementById('inlinePreview').classList.add('on');
+  inlinePreviewActive = true;
+  document.getElementById('inlinePreview').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function hideInlinePreview() {
+  document.getElementById('inlinePreview').classList.remove('on');
+  inlinePreviewActive = false;
+}
 
 async function doSingle() {
   const row = previewRow || filtered[0];
