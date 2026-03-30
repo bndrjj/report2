@@ -253,9 +253,25 @@ a{color:inherit;}
     <div class="card-title">📁 تحميل ملف البيانات (Excel)</div>
     <div class="info-box" style="margin-bottom:14px;">
       <b>طريقتان لتحميل البيانات:</b><br>
-      ١. <b>تلقائي:</b> ضع ملف Excel باسم <code>report.xlsx</code> داخل مجلد <code>data/</code> في الـ repository — سيتم تحميله تلقائيًا.<br>
-      ٢. <b>يدوي:</b> انقر أو اسحب الملف أدناه لتحميله مباشرةً من جهازك (للتحديث الأسبوعي).
+      ١. <b>تلقائي:</b> ضع ملف Excel باسم <code>report1.xlsx</code> للفصل الأول أو <code>report2.xlsx</code> للفصل الثاني داخل مجلد <code>data/</code> في الـ repository — سيتم تحميله تلقائيًا حسب الفصل المحدد.<br>
+      ٢. <b>يدوي:</b> حدد الفصل الدراسي أولاً ثم انقر أو اسحب الملف أدناه لتحميله مباشرةً من جهازك.
     </div>
+
+    <!-- Semester Selector -->
+    <div style="background:#EBF5FB;border:1.5px solid var(--c3);border-radius:10px;padding:14px 18px;margin-bottom:14px;">
+      <div style="font-weight:800;color:var(--c1);font-size:.95rem;margin-bottom:10px;">📚 حدد الفصل الدراسي للبيانات:</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:.92rem;padding:8px 16px;border-radius:8px;border:2px solid var(--c1);background:#fff;transition:all .2s;" id="semLabel1">
+          <input type="radio" name="semesterSel" value="1" id="sem1" checked onchange="onSemesterChange()" style="accent-color:var(--c1);width:16px;height:16px;">
+          📖 الفصل الدراسي الأول
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:.92rem;padding:8px 16px;border-radius:8px;border:2px solid var(--cbrd);background:#fff;transition:all .2s;" id="semLabel2">
+          <input type="radio" name="semesterSel" value="2" id="sem2" onchange="onSemesterChange()" style="accent-color:var(--c1);width:16px;height:16px;">
+          📗 الفصل الدراسي الثاني
+        </label>
+      </div>
+    </div>
+
     <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
       <div class="upload-ico">📂</div>
       <div class="upload-t">اسحب ملف Excel هنا أو انقر للاختيار</div>
@@ -437,6 +453,7 @@ let previewRow   = null;
 let inlinePreviewActive = false;
 let eduLogoSrc = './edulogo.svg';
 let eduLogoDataUriPromise = null;
+let currentSemester = 1; // 1 = الفصل الأول, 2 = الفصل الثاني
 
 /* ──────────────────────────────────────────────────────────────
    INIT
@@ -507,14 +524,35 @@ async function ensureEduLogoDataUri() {
 }
 
 async function tryAutoLoad() {
+  const fname = `data/report${currentSemester}.xlsx`;
+  const semLabel = currentSemester === 1 ? 'الفصل الأول' : 'الفصل الثاني';
   try {
-    const res = await fetch('./data/report.xlsx', {cache:'no-cache'});
-    if (!res.ok) return;
+    setStatus('⏳ جاري البحث عن ملف البيانات...', 'loading');
+    const res = await fetch(`./${fname}`, {cache:'no-cache'});
+    if (!res.ok) {
+      setStatus('⚪ لم يُحمَّل ملف بعد', 'none');
+      return;
+    }
     const buf = await res.arrayBuffer();
     await parseExcel(buf);
-    setStatus('✅ تم تحميل البيانات من data/report.xlsx', 'ok');
-    toast('✅ تم تحميل الملف تلقائيًا');
-  } catch(e) {/* no auto-file — that's fine */}
+    setStatus(`✅ ${semLabel} — ${fname}`, 'ok');
+    toast(`✅ تم تحميل بيانات ${semLabel} تلقائيًا`);
+  } catch(e) {
+    setStatus('⚪ لم يُحمَّل ملف بعد', 'none');
+  }
+}
+
+function onSemesterChange() {
+  currentSemester = parseInt(document.querySelector('input[name="semesterSel"]:checked').value);
+  // Update label styles
+  document.getElementById('semLabel1').style.borderColor = currentSemester === 1 ? 'var(--c1)' : 'var(--cbrd)';
+  document.getElementById('semLabel2').style.borderColor = currentSemester === 2 ? 'var(--c1)' : 'var(--cbrd)';
+  // Reset loaded data and try auto-reload
+  allRows = [];
+  filtered = [];
+  document.getElementById('filtersCard').style.display = 'none';
+  hideInlinePreview();
+  tryAutoLoad();
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -533,11 +571,12 @@ function initDrop() {
 async function processFile(file) {
   if (!/\.xlsx?$/i.test(file.name)) { toast('⚠️ يرجى رفع ملف .xlsx أو .xls'); return; }
   setStatus('⏳ جاري التحميل...', 'loading');
+  const semLabel = currentSemester === 1 ? 'الفصل الأول' : 'الفصل الثاني';
   try {
     const buf = await file.arrayBuffer();
     await parseExcel(buf);
-    setStatus(`✅ ${file.name}`, 'ok');
-    toast(`✅ تم تحميل ${allRows.length.toLocaleString('en-US')} سجل`);
+    setStatus(`✅ ${semLabel} — ${file.name}`, 'ok');
+    toast(`✅ تم تحميل ${allRows.length.toLocaleString('en-US')} سجل (${semLabel})`);
   } catch(e) {
     setStatus('❌ خطأ في القراءة', 'none');
     toast('❌ فشل تحميل الملف: ' + e.message);
@@ -810,7 +849,7 @@ function buildReportHTML(row, logoSrc = eduLogoSrc) {
       <td style="width:35%;vertical-align:top;text-align:left;padding:4px 0;">
         <div style="font-size:12pt;font-weight:900;color:${C.priDk};line-height:1.5;margin-bottom:2px;">تقرير المتابعة الأسبوعية</div>
         <div style="font-size:9.5pt;font-weight:700;color:${C.pri};line-height:1.5;">خدمة دعم التميز المدرسي</div>
-        <div style="font-size:9pt;font-weight:600;color:${C.txtMut};line-height:1.5;">الفصل الأول ١٤٤٧هـ</div>
+        <div style="font-size:9pt;font-weight:600;color:${C.txtMut};line-height:1.5;">${currentSemester === 1 ? 'الفصل الأول' : 'الفصل الثاني'} ١٤٤٧هـ</div>
         <div style="font-size:8pt;font-weight:600;color:${C.txtMut};line-height:1.5;margin-top:2px;">رقم التقرير: ${row[F.id]||'—'}</div>
       </td>
     </tr>
