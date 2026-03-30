@@ -14,7 +14,7 @@
   <!-- Arabic Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
 <style>
 /* ─── Variables ─────────────────────────────────────────── */
@@ -641,115 +641,142 @@ function buildReportHTML(row) {
   const week    = row[F.week]   || '—';
   const day     = row[F.day]    || '—';
 
+  /* ─── Design tokens (inspired by progress-report style) ─── */
+  const C = {
+    pri:     '#0c6b60',   /* primary green-teal */
+    priDk:   '#094d45',   /* darker teal */
+    priLt:   '#1a8f82',   /* lighter teal */
+    accent:  '#d4af37',   /* gold accent */
+    accentLt:'#f5e6b8',
+    bg:      '#ffffff',
+    bgAlt:   '#f7faf9',
+    bgSec:   '#f0f7f6',
+    txt:     '#1a2e2c',
+    txtMut:  '#5a7370',
+    brd:     '#c8dcd9',
+    brdLt:   '#e2edeb',
+  };
+
   function sec(title, content, minH='55px') {
     return `
-    <div style="border:1px solid #245966;margin-bottom:4px;">
-      <div style="background:#245966;color:#fff;padding:7px 14px;font-weight:700;font-size:9pt;">
-        ${title}
+    <div style="border:1px solid ${C.brd};border-radius:8px;margin-bottom:5px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,${C.priDk},${C.pri});color:#fff;padding:7px 14px;font-weight:800;font-size:9pt;display:flex;align-items:center;gap:6px;">
+        <span style="color:${C.accent};font-size:7pt;">&#9670;</span> ${title}
       </div>
-      <div style="min-height:${minH};padding:8px 14px;background:#F5FAFB;font-size:8.5pt;line-height:1.7;white-space:pre-wrap;">${content || '—'}</div>
+      <div style="min-height:${minH};padding:8px 14px;background:${C.bgAlt};font-size:8.5pt;line-height:1.8;white-space:pre-wrap;color:${C.txt};">${content || '—'}</div>
     </div>`;
   }
 
   function domainSec(title, content, count, countTitle) {
     return `
-    <table style="width:100%;border-collapse:collapse;margin-bottom:4px;border:1px solid #245966;">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:5px;border:1px solid ${C.brd};border-radius:8px;overflow:hidden;">
       <tr>
         <td style="width:80%;vertical-align:top;">
-          <div style="background:#245966;color:#fff;padding:7px 14px;font-weight:700;font-size:9pt;">${title}</div>
-          <div style="min-height:70px;padding:8px 14px;background:#F5FAFB;font-size:8.5pt;line-height:1.7;white-space:pre-wrap;">${content || '—'}</div>
+          <div style="background:linear-gradient(135deg,${C.priDk},${C.pri});color:#fff;padding:7px 14px;font-weight:800;font-size:9pt;display:flex;align-items:center;gap:6px;">
+            <span style="color:${C.accent};font-size:7pt;">&#9670;</span> ${title}
+          </div>
+          <div style="min-height:70px;padding:8px 14px;background:${C.bgAlt};font-size:8.5pt;line-height:1.8;white-space:pre-wrap;color:${C.txt};">${content || '—'}</div>
         </td>
-        <td style="width:20%;vertical-align:top;background:#1B5E70;color:#fff;text-align:center;padding:8px 6px;border-right:2px solid #245966;">
-          <div style="font-size:7.5pt;font-weight:700;line-height:1.4;margin-bottom:8px;">${countTitle}</div>
-          <div style="font-size:1.5rem;font-weight:900;">${count || '—'}</div>
+        <td style="width:20%;vertical-align:top;background:linear-gradient(180deg,${C.priDk},${C.pri});color:#fff;text-align:center;padding:10px 6px;border-right:2px solid ${C.accent};">
+          <div style="font-size:7.5pt;font-weight:700;line-height:1.4;margin-bottom:10px;opacity:.9;">${countTitle}</div>
+          <div style="font-size:1.6rem;font-weight:900;color:${C.accent};">${count || '—'}</div>
         </td>
       </tr>
     </table>`;
   }
 
   return `
-<div style="font-family:'Cairo','Arial',Tahoma,sans-serif;direction:rtl;font-size:9pt;color:#1A1A1A;background:#fff;padding:10mm;width:100%;">
+<div style="font-family:'Cairo','Tajawal','Arial',sans-serif;direction:rtl;font-size:9pt;color:${C.txt};background:#fff;padding:10mm;width:100%;">
 
-  <!-- ══ HEADER ══ -->
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #245966;padding-bottom:8px;margin-bottom:6px;">
-    <div style="font-size:7.5pt;line-height:1.5;text-align:right;color:#245966;font-weight:700;">
-      تعليم الشرقية<br>إدارة أداء التعليم<br>
-      <span style="font-size:7pt;font-weight:400;color:#555;">الفريق التنفيذي</span><br>
-      <span style="font-size:9pt;font-weight:800;color:#1B5E70;">وزارة التعليم</span>
-    </div>
-    <div style="flex:1;text-align:center;padding:0 10px;">
-      <div style="font-size:7.5pt;color:#555;margin-bottom:3px;">رقم التقرير: ${row[F.id]||''}</div>
-      <div style="font-size:12.5pt;font-weight:900;line-height:1.4;color:#1A1A1A;">تقرير المتابعة الأسبوعية للمشرف التربوي مقدم</div>
-      <div style="font-size:12.5pt;font-weight:900;line-height:1.4;color:#1A1A1A;">خدمة دعم التميز المدرسي الفصل الأول ١٤٤٧هـ</div>
-    </div>
-    <div style="width:80px;text-align:left;">
-      <div style="width:60px;height:60px;border:2px solid #245966;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7pt;text-align:center;color:#245966;font-weight:700;padding:4px;">وزارة<br>التعليم</div>
-    </div>
-  </div>
+  <!-- ══ LETTERHEAD (3-column like reference) ══ -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
+    <tr>
+      <td style="width:35%;vertical-align:top;text-align:right;padding:4px 0;">
+        <div style="font-size:13pt;font-weight:900;color:${C.priDk};line-height:1.5;margin-bottom:2px;">المملكة العربية السعودية</div>
+        <div style="font-size:13pt;font-weight:900;color:${C.priDk};line-height:1.5;margin-bottom:2px;">وزارة التعليم</div>
+        <div style="font-size:10pt;font-weight:700;color:${C.priDk};line-height:1.5;">الإدارة العامة للتعليم بالمنطقة الشرقية</div>
+        <div style="font-size:9pt;font-weight:700;color:${C.txtMut};line-height:1.5;">إدارة أداء التعليم — الفريق التنفيذي</div>
+      </td>
+      <td style="width:30%;vertical-align:middle;text-align:center;padding:4px 0;">
+        <div style="width:100px;height:100px;border:3px solid ${C.pri};border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:10pt;text-align:center;color:${C.priDk};font-weight:900;line-height:1.3;padding:8px;">وزارة<br>التعليم</div>
+        </div>
+      </td>
+      <td style="width:35%;vertical-align:top;text-align:left;padding:4px 0;">
+        <div style="font-size:12pt;font-weight:900;color:${C.priDk};line-height:1.5;margin-bottom:2px;">تقرير المتابعة الأسبوعية</div>
+        <div style="font-size:9.5pt;font-weight:700;color:${C.pri};line-height:1.5;">خدمة دعم التميز المدرسي</div>
+        <div style="font-size:9pt;font-weight:600;color:${C.txtMut};line-height:1.5;">الفصل الأول ١٤٤٧هـ</div>
+        <div style="font-size:8pt;font-weight:600;color:${C.txtMut};line-height:1.5;margin-top:2px;">رقم التقرير: ${row[F.id]||'—'}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ══ GOLD-TEAL DIVIDER ══ -->
+  <div style="height:4px;border-radius:2px;background:linear-gradient(90deg,${C.accent},${C.pri},${C.accent});margin-bottom:10px;"></div>
 
   <!-- ══ INFO TABLE ══ -->
-  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:5px;">
     <tr>
-      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">الأسبوع</th>
-      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">اليوم</th>
-      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">التاريخ</th>
-      <th style="background:#245966;color:#fff;padding:7px;text-align:center;border:1px solid #1A4550;font-size:9pt;">القطاع</th>
+      <th style="background:${C.pri};color:#fff;padding:7px;text-align:center;border:1px solid ${C.priDk};font-size:9pt;font-weight:700;">الأسبوع</th>
+      <th style="background:${C.pri};color:#fff;padding:7px;text-align:center;border:1px solid ${C.priDk};font-size:9pt;font-weight:700;">اليوم</th>
+      <th style="background:${C.pri};color:#fff;padding:7px;text-align:center;border:1px solid ${C.priDk};font-size:9pt;font-weight:700;">التاريخ</th>
+      <th style="background:${C.pri};color:#fff;padding:7px;text-align:center;border:1px solid ${C.priDk};font-size:9pt;font-weight:700;">القطاع</th>
     </tr>
     <tr>
-      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${week}</td>
-      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${day}</td>
-      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:8.5pt;">${date}</td>
-      <td style="background:#EBF5F7;padding:6px;text-align:center;border:1px solid #B0CDD4;font-size:9pt;font-weight:700;">${sector}</td>
+      <td style="background:${C.bgAlt};padding:6px;text-align:center;border:1px solid ${C.brdLt};font-size:8.5pt;">${week}</td>
+      <td style="background:${C.bgAlt};padding:6px;text-align:center;border:1px solid ${C.brdLt};font-size:8.5pt;">${day}</td>
+      <td style="background:${C.bgAlt};padding:6px;text-align:center;border:1px solid ${C.brdLt};font-size:8.5pt;">${date}</td>
+      <td style="background:${C.bgAlt};padding:6px;text-align:center;border:1px solid ${C.brdLt};font-size:9pt;font-weight:800;color:${C.priDk};">${sector}</td>
     </tr>
   </table>
 
   <!-- ══ SUPERVISOR BAR ══ -->
-  <div style="background:#EBF5F7;border:1.5px solid #245966;padding:7px 14px;margin-bottom:4px;display:flex;align-items:center;gap:12px;">
-    <span style="font-weight:800;color:#245966;font-size:9.5pt;white-space:nowrap;">اسم المشرف / المشرفة:</span>
-    <span style="font-weight:900;font-size:11pt;color:#1A1A1A;">${sup}</span>
+  <div style="background:${C.bgSec};border:1.5px solid ${C.brd};border-right:4px solid ${C.accent};border-radius:0 8px 8px 0;padding:8px 14px;margin-bottom:5px;display:flex;align-items:center;gap:12px;">
+    <span style="font-weight:800;color:${C.priDk};font-size:9.5pt;white-space:nowrap;">اسم المشرف / المشرفة:</span>
+    <span style="font-weight:900;font-size:11pt;color:${C.txt};">${sup}</span>
   </div>
 
   <!-- ══ TASK TABLE ══ -->
-  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;font-size:8pt;">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:5px;font-size:8pt;">
     <tr>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:28%;">المهمة حسب خطة المشرف التربوي</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:28%;">المدرسة التي سيقدم لها الخدمة</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:16%;">نوع الخدمة</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:12%;">نوع المدرسة</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 8px;border:1px solid #245966;text-align:center;width:16%;">المرحلة الدراسية</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 8px;border:1px solid ${C.pri};text-align:center;width:28%;font-weight:700;">المهمة حسب خطة المشرف التربوي</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 8px;border:1px solid ${C.pri};text-align:center;width:28%;font-weight:700;">المدرسة التي سيقدم لها الخدمة</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 8px;border:1px solid ${C.pri};text-align:center;width:16%;font-weight:700;">نوع الخدمة</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 8px;border:1px solid ${C.pri};text-align:center;width:12%;font-weight:700;">نوع المدرسة</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 8px;border:1px solid ${C.pri};text-align:center;width:16%;font-weight:700;">المرحلة الدراسية</th>
     </tr>
     <tr>
-      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'task')}</td>
-      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'svcSchools')}</td>
-      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'svcType')}</td>
-      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'schTypes')}</td>
-      <td style="background:#F0F8FA;padding:5px 8px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'schLevels')}</td>
+      <td style="background:${C.bgAlt};padding:5px 8px;border:1px solid ${C.brdLt};text-align:center;">${gd(row,'task')}</td>
+      <td style="background:${C.bgAlt};padding:5px 8px;border:1px solid ${C.brdLt};text-align:center;">${gd(row,'svcSchools')}</td>
+      <td style="background:${C.bgAlt};padding:5px 8px;border:1px solid ${C.brdLt};text-align:center;">${gd(row,'svcType')}</td>
+      <td style="background:${C.bgAlt};padding:5px 8px;border:1px solid ${C.brdLt};text-align:center;">${gd(row,'schTypes')}</td>
+      <td style="background:${C.bgAlt};padding:5px 8px;border:1px solid ${C.brdLt};text-align:center;">${gd(row,'schLevels')}</td>
     </tr>
   </table>
 
   <!-- ══ SCHOOLS ══ -->
-  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;font-size:8pt;">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:5px;font-size:8pt;">
     <tr>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 10px;border:1px solid #245966;text-align:right;width:50%;">اسم المدرسة المكلف بتقديم الخدمة لها :</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px 10px;border:1px solid #245966;text-align:right;width:50%;">اسم المدرسة الإضافية :</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 10px;border:1px solid ${C.pri};text-align:right;width:50%;font-weight:700;">اسم المدرسة المكلف بتقديم الخدمة لها :</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px 10px;border:1px solid ${C.pri};text-align:right;width:50%;font-weight:700;">اسم المدرسة الإضافية :</th>
     </tr>
     <tr>
-      <td style="background:#F0F8FA;padding:5px 10px;border:1px solid #C0D8DF;">${gd(row,'assigned')}</td>
-      <td style="background:#F0F8FA;padding:5px 10px;border:1px solid #C0D8DF;">${gd(row,'additional')}</td>
+      <td style="background:${C.bgAlt};padding:5px 10px;border:1px solid ${C.brdLt};font-weight:600;">${gd(row,'assigned')}</td>
+      <td style="background:${C.bgAlt};padding:5px 10px;border:1px solid ${C.brdLt};font-weight:600;">${gd(row,'additional')}</td>
     </tr>
   </table>
 
   <!-- ══ ATTENDANCE ══ -->
-  <table style="width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8pt;">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:8pt;">
     <tr>
-      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:34%;">تفعيل منصة مدرستي</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:33%;">وقت الحضور</th>
-      <th style="background:#3A8FA3;color:#fff;padding:5px;border:1px solid #245966;text-align:center;width:33%;">وقت الانصراف</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px;border:1px solid ${C.pri};text-align:center;width:34%;font-weight:700;">تفعيل منصة مدرستي</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px;border:1px solid ${C.pri};text-align:center;width:33%;font-weight:700;">وقت الحضور</th>
+      <th style="background:${C.priLt};color:#fff;padding:6px;border:1px solid ${C.pri};text-align:center;width:33%;font-weight:700;">وقت الانصراف</th>
     </tr>
     <tr>
-      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'madrasati')}</td>
-      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'arrive')}</td>
-      <td style="background:#F0F8FA;padding:5px;border:1px solid #C0D8DF;text-align:center;">${gd(row,'depart')}</td>
+      <td style="background:${C.bgAlt};padding:5px;border:1px solid ${C.brdLt};text-align:center;font-weight:600;">${gd(row,'madrasati')}</td>
+      <td style="background:${C.bgAlt};padding:5px;border:1px solid ${C.brdLt};text-align:center;font-weight:600;">${gd(row,'arrive')}</td>
+      <td style="background:${C.bgAlt};padding:5px;border:1px solid ${C.brdLt};text-align:center;font-weight:600;">${gd(row,'depart')}</td>
     </tr>
   </table>
 
@@ -761,11 +788,19 @@ function buildReportHTML(row) {
   <!-- ══ PAGE 2 ══ -->
   <div style="page-break-before:always;break-before:page;padding-top:6mm;">
 
-  <!-- P2 Mini header -->
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #245966;padding-bottom:6px;margin-bottom:6px;">
-    <div style="font-size:7pt;color:#245966;font-weight:700;">تعليم الشرقية | إدارة أداء التعليم</div>
-    <div style="font-size:10pt;font-weight:800;color:#1A1A1A;">تقرير المتابعة الأسبوعية — ${sup} — ${date}</div>
-  </div>
+  <!-- P2 Mini Letterhead -->
+  <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
+    <tr>
+      <td style="width:50%;vertical-align:middle;text-align:right;padding:4px 0;">
+        <span style="font-size:8pt;color:${C.priDk};font-weight:800;">تعليم الشرقية</span>
+        <span style="font-size:8pt;color:${C.txtMut};font-weight:600;"> | إدارة أداء التعليم</span>
+      </td>
+      <td style="width:50%;vertical-align:middle;text-align:left;padding:4px 0;">
+        <span style="font-size:9pt;font-weight:800;color:${C.txt};">تقرير المتابعة — ${sup} — ${date}</span>
+      </td>
+    </tr>
+  </table>
+  <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,${C.accent},${C.pri},${C.accent});margin-bottom:10px;"></div>
 
   ${sec('أبرز المعالجات التي تمت في المجالات الأربعة', g(row,'treatments'), '80px')}
   ${sec('أبرز التحديات الإدارية والفنية في المدرسة', g(row,'challenges'), '65px')}
@@ -797,10 +832,15 @@ function buildReportHTML(row) {
   ${sec('مرفقات وشواهد داعمة للجهود أو خطاب لتحديات يلزم بها التبليغ', g(row,'attach'), '45px')}
 
   <!-- Footer -->
-  <div style="display:flex;justify-content:space-between;background:#245966;color:#fff;padding:6px 12px;font-size:8pt;margin-top:8px;border-radius:0 0 4px 4px;">
-    <span>المشرف: ${sup}</span>
-    <span>القطاع: ${sector}</span>
-    <span>التاريخ: ${date}</span>
+  <div style="margin-top:10px;padding-top:8px;border-top:2px solid ${C.brdLt};">
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="background:linear-gradient(135deg,${C.priDk},${C.pri});color:#fff;padding:8px 14px;font-size:8.5pt;font-weight:700;text-align:center;width:33%;border-left:1px solid rgba(255,255,255,.2);">المشرف: ${sup}</td>
+        <td style="background:linear-gradient(135deg,${C.priDk},${C.pri});color:#fff;padding:8px 14px;font-size:8.5pt;font-weight:700;text-align:center;width:34%;border-left:1px solid rgba(255,255,255,.2);">القطاع: ${sector}</td>
+        <td style="background:linear-gradient(135deg,${C.priDk},${C.pri});color:#fff;padding:8px 14px;font-size:8.5pt;font-weight:700;text-align:center;width:33%;">التاريخ: ${date}</td>
+      </tr>
+    </table>
+    <div style="text-align:center;font-size:7pt;color:${C.txtMut};font-weight:600;margin-top:6px;">تقرير صادر من نظام تقارير دعم التميز المدرسي — وزارة التعليم</div>
   </div>
 
   </div><!-- /page-2 -->
