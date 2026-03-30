@@ -886,13 +886,10 @@ async function doSingle() {
   const row = previewRow || filtered[0];
   if (!row) return;
   const fname = makeFilename(row) + '.pdf';
-  const tgt = document.getElementById('renderTarget');
-  tgt.innerHTML = buildReportHTML(row);
-  // Wait for fonts and layout to be fully rendered before capture
-  await document.fonts.ready;
-  await new Promise(r => setTimeout(r, 400));
+  // Use HTML string approach (not DOM element) to avoid blank PDF issue with html2canvas
+  const htmlContent = buildReportHTML(row);
   try {
-    await html2pdf().set(pdfOpts(fname)).from(tgt).save();
+    await html2pdf().set(pdfOpts(fname)).from(htmlContent).save();
     toast('✅ تم تحميل التقرير');
   } catch(e) {
     toast('❌ خطأ: ' + e.message);
@@ -910,8 +907,6 @@ async function doBatch() {
   const zip   = new JSZip();
   const names  = {};
   const total  = filtered.length;
-  const tgt    = document.getElementById('renderTarget');
-
   for (let i = 0; i < total; i++) {
     if (cancelled) break;
 
@@ -929,13 +924,11 @@ async function doBatch() {
       `المشرف: ${row[F.sup]||'—'}  |  القطاع: ${row[F.sector]||'—'}  |  التاريخ: ${fmtDate(row[F.date])}`;
 
     try {
-      tgt.innerHTML = buildReportHTML(row);
-      // Wait for fonts and layout before capture
-      await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 250));
+      // Use HTML string approach (not DOM element) to avoid blank PDF issue with html2canvas
+      const htmlContent = buildReportHTML(row);
       const blob = await html2pdf()
         .set({...pdfOpts(fname), filename: fname})
-        .from(tgt)
+        .from(htmlContent)
         .outputPdf('blob');
       zip.file(fname, blob);
     } catch(err) {
