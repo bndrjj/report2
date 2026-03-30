@@ -451,6 +451,21 @@ document.addEventListener('DOMContentLoaded', () => {
   tryAutoLoad();
 });
 
+function svgDataUriToPng(svgDataUri, size) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = size;
+      canvas.height = size;
+      canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(svgDataUri); // fallback to SVG if conversion fails
+    img.src = svgDataUri;
+  });
+}
+
 async function ensureEduLogoDataUri() {
   if (eduLogoSrc.startsWith('data:')) return eduLogoSrc;
   if (!eduLogoDataUriPromise) {
@@ -459,7 +474,9 @@ async function ensureEduLogoDataUri() {
         const res = await fetch('./edulogo.svg', { cache:'force-cache' });
         if (!res.ok) return eduLogoSrc;
         const svg = await res.text();
-        eduLogoSrc = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        const svgUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        // Convert SVG → PNG so html2canvas renders it correctly in PDF
+        eduLogoSrc = await svgDataUriToPng(svgUri, 300);
         return eduLogoSrc;
       } catch {
         return eduLogoSrc;
